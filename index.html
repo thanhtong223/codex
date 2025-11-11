@@ -1,31 +1,32 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rotating Globe</title>
-  <meta name="color-scheme" content="dark light" />
-  <!-- Preload the texture so we confirm the path is correct -->
-  <link rel="preload" as="image" href="/codex/RenderData.jpeg">
   <style>
-    html,body{height:100%;margin:0}
-    body{background:#0b1020;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    canvas{display:block;cursor:grab}
-    .overlay{position:fixed;inset:0;pointer-events:none;display:grid;place-items:end center;padding:24px}
-    .hint{color:#e6eefc;opacity:.9;font-size:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:10px;backdrop-filter:blur(4px)}
-    .error{position:fixed;left:12px;bottom:12px;color:#fff;background:#b91c1c;padding:8px 12px;border-radius:8px;font-size:12px;max-width:80vw;display:none}
-    .noscript{position:fixed;inset:0;display:grid;place-items:center;color:#fff}
+    html, body { margin:0; height:100%; }
+    body { background:#0b1020; overflow:hidden; }
+    canvas { display:block; cursor:grab; }
+    .hint {
+      position:fixed; bottom:12px; right:12px;
+      color:#fff; font-size:13px; opacity:.8;
+      background:rgba(255,255,255,.1); padding:8px 12px;
+      border-radius:8px; backdrop-filter:blur(4px);
+      border:1px solid rgba(255,255,255,.15);
+    }
   </style>
 </head>
 <body>
-  <div class="overlay"><div class="hint">Drag to rotate, scroll to zoom</div></div>
-  <div id="err" class="error"></div>
 
-  <!-- External scripts, no inline JS to satisfy strict CSP -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js" defer></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js" defer></script>
-  <script src="/codex/app.js" defer></script>
+<div class="hint">Drag to rotate</div>
 
-  <noscript><div class="noscript">This page needs JavaScript enabled.</div></noscript>
+<!-- Three.js from CDN -->
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+
+<!-- YOUR SCRIPT -->
+<script src="./globe.js" defer></script>
+
 </body>
 </html>
