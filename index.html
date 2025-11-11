@@ -51,9 +51,9 @@
     scene.add(light);
     scene.add(new THREE.AmbientLight(0xffffff, 0.25));
 
-    // Load Earth texture, your file should be in the same folder: /earth.jpg (1440x720)
+    // Load Earth texture, your file should be in the same folder: /RenderData.jpeg (1440x720)
     const loader = new THREE.TextureLoader();
-    const texture = await loader.loadAsync("./earth.jpg");
+    const texture = await loader.loadAsync("./RenderData.jpeg");
     texture.colorSpace = THREE.SRGBColorSpace;
     // Non power-of-two textures are fine, mipmaps off by default
     texture.minFilter = THREE.LinearFilter;
