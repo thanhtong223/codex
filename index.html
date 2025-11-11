@@ -15,7 +15,7 @@
       --text-primary: #ffffff;
       --text-secondary: rgba(255, 255, 255, 0.75);
       --card-bg: rgba(8, 10, 26, 0.6);
-      --border: rgba(255, 255, 255, 0.1);
+      --border: rgba(255, 255, 255, 0.12);
     }
 
     * {
@@ -35,6 +35,26 @@
       justify-content: center;
       padding: 2.5rem 1.5rem;
       overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      inset: -40vh -40vw;
+      background: radial-gradient(circle at 20% 20%, rgba(67, 209, 255, 0.15), transparent 55%),
+        radial-gradient(circle at 80% 60%, rgba(109, 68, 255, 0.15), transparent 50%);
+      z-index: -2;
+      filter: blur(40px);
+      opacity: 0.75;
+    }
+
+    body::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(67, 209, 255, 0.06), transparent 55%);
+      z-index: -1;
     }
 
     .container {
@@ -90,13 +110,29 @@
       position: relative;
       width: min(500px, 100%);
       aspect-ratio: 1 / 1;
+      min-height: 320px;
       margin: 0 auto;
+      border-radius: 30px;
+      background: linear-gradient(160deg, rgba(33, 39, 81, 0.7), rgba(7, 9, 20, 0.9));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 30px 90px rgba(6, 10, 28, 0.5);
+    }
+
+    .canvas-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: 8%;
+      border-radius: 50%;
+      pointer-events: none;
+      background: radial-gradient(circle at 30% 30%, rgba(67, 209, 255, 0.2), transparent 60%);
+      filter: blur(12px);
+      opacity: 0.8;
     }
 
     #globeCanvas {
       width: 100%;
       height: 100%;
-      border-radius: 50%;
+      border-radius: 30px;
+      display: block;
     }
 
     .floating-card {
@@ -110,11 +146,16 @@
       align-items: center;
       gap: 1rem;
       box-shadow: 0 24px 60px rgba(6, 10, 28, 0.45);
+      backdrop-filter: blur(24px);
     }
 
     .floating-card strong {
       color: var(--accent);
       font-weight: 600;
+    }
+
+    .floating-card span {
+      font-size: 1.35rem;
     }
 
     @media (max-width: 768px) {
@@ -125,6 +166,13 @@
       .floating-card {
         flex-direction: column;
         text-align: center;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .floating-card,
+      .container {
+        animation: none !important;
       }
     }
   </style>
@@ -151,8 +199,16 @@
     import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/controls/OrbitControls.js';
 
     const canvas = document.getElementById('globeCanvas');
+    if (!canvas) {
+      throw new Error('Globe canvas element not found in the document.');
+    }
+    const canvasWrapper = canvas.parentElement;
+    if (!canvasWrapper) {
+      throw new Error('Canvas wrapper element is missing for the globe.');
+    }
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const scene = new THREE.Scene();
 
@@ -170,12 +226,43 @@
     const earthTexture = textureLoader.load('https://threejs.org/examples/textures/land_ocean_ice_cloud_2048.jpg');
 
     const geometry = new THREE.SphereGeometry(2, 64, 64);
-    const material = new THREE.MeshStandardMaterial({ map: earthTexture });
+    const material = new THREE.MeshStandardMaterial({
+      map: earthTexture,
+      roughness: 0.7,
+      metalness: 0.1
+    });
     const globe = new THREE.Mesh(geometry, material);
     scene.add(globe);
 
+    const atmosphereGeometry = new THREE.SphereGeometry(2.05, 64, 64);
+    const atmosphereMaterial = new THREE.ShaderMaterial({
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      uniforms: {
+        glowColor: { value: new THREE.Color(0x4ecbff) }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        uniform vec3 glowColor;
+        void main() {
+          float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+          gl_FragColor = vec4(glowColor, 1.0) * intensity;
+        }
+      `
+    });
+    const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+    scene.add(atmosphere);
+
     const starGeometry = new THREE.BufferGeometry();
-    const starCount = 600;
+    const starCount = 900;
     const starPositions = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
@@ -195,28 +282,48 @@
 
     const controls = new OrbitControls(camera, canvas);
     controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
     controls.minDistance = 2.6;
     controls.maxDistance = 7;
     controls.enablePan = false;
 
     const resizeRenderer = () => {
-      const { clientWidth, clientHeight } = canvas.parentElement;
-      renderer.setSize(clientWidth, clientHeight, false);
-      camera.aspect = clientWidth / clientHeight;
+      if (!canvasWrapper) return;
+      const { width, height } = canvasWrapper.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
     };
 
     window.addEventListener('resize', resizeRenderer);
-    resizeRenderer();
 
+    if (typeof ResizeObserver !== 'undefined' && canvasWrapper) {
+      const resizeObserver = new ResizeObserver(() => resizeRenderer());
+      resizeObserver.observe(canvasWrapper);
+    }
+
+    requestAnimationFrame(resizeRenderer);
+
+    let autoRotate = true;
     const animate = () => {
       requestAnimationFrame(animate);
-      globe.rotation.y += 0.0018;
+      if (autoRotate) {
+        globe.rotation.y += 0.0018;
+        atmosphere.rotation.y += 0.0018;
+      }
       controls.update();
       renderer.render(scene, camera);
     };
 
     animate();
+
+    const stopAutoRotate = () => {
+      autoRotate = false;
+      controls.removeEventListener('start', stopAutoRotate);
+    };
+
+    controls.addEventListener('start', stopAutoRotate);
   </script>
 </body>
 </html>
