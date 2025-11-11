@@ -1,129 +1,113 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rotating Globe • Landing</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Rotating Globe</title>
   <style>
-    html, body { height: 100%; margin: 0; } 
-    body { background:#0b1020; overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    canvas { display:block; }
-    .overlay {
-      position: fixed; inset: 0; pointer-events: none;
-      display: grid; place-items: end center; padding: 24px;
-      background: radial-gradient(1200px 600px at 50% 120%, rgba(255,255,255,0.04), transparent);
-    }
-    .hint {
-      color:#e6eefc; opacity:.85; font-size:14px; letter-spacing:.2px;
-      background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
-      padding:10px 14px; border-radius:10px; backdrop-filter: blur(4px);
-    }
-    /* nicer pointer while dragging */
-    body, canvas { cursor: grab; }
-    body.dragging, canvas.dragging { cursor: grabbing; }
+    html,body{height:100%;margin:0}
+    body{background:#0b1020;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    canvas{display:block;cursor:grab}
+    .overlay{position:fixed;inset:0;pointer-events:none;display:grid;place-items:end center;padding:24px}
+    .hint{color:#e6eefc;opacity:.9;font-size:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:10px 14px;border-radius:10px;backdrop-filter:blur(4px)}
+    .error{position:fixed;left:12px;bottom:12px;color:#fff;background:#b91c1c;padding:8px 12px;border-radius:8px;font-size:12px;max-width:80vw}
   </style>
 </head>
 <body>
-  <div class="overlay"><div class="hint">Drag to rotate • Pinch or scroll to zoom</div></div>
+  <div class="overlay"><div class="hint">Drag to rotate, scroll to zoom</div></div>
+  <!-- tiny thumbnail to confirm path, remove after it works -->
+  <img id="thumb" src="./RenderData.jpeg" alt="" style="position:fixed;top:8px;left:8px;width:120px;border:1px solid #fff;z-index:9999;opacity:.8">
+  <div id="err" class="error" style="display:none"></div>
 
-  <!-- Three.js via ESM CDN -->
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
-    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+  <!-- Non-module builds for maximum compatibility -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
+    function showError(msg){
+      const el=document.getElementById('err');
+      el.textContent=msg;
+      el.style.display='block';
+      console.error(msg);
+    }
 
-    // Scene
+    // Scene, camera, renderer
     const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 200);
+    camera.position.set(0,0,3);
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 0, 3);
-
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:"high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     document.body.appendChild(renderer.domElement);
 
-    // Lights, subtle rim
-    const light = new THREE.DirectionalLight(0xffffff, 1.1);
-    light.position.set(5, 3, 5);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+    // Lights
+    scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x202020, 0.6));
+    const dir = new THREE.DirectionalLight(0xffffff, 1.1);
+    dir.position.set(5,3,5);
+    scene.add(dir);
 
-    // Load Earth texture, your file should be in the same folder: /RenderData.jpeg (1440x720)
-    const loader = new THREE.TextureLoader();
-    const texture = await loader.loadAsync("./RenderData.jpeg");
-    texture.colorSpace = THREE.SRGBColorSpace;
-    // Non power-of-two textures are fine, mipmaps off by default
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy?.() || 1;
-
-    // Globe
-    const geometry = new THREE.SphereGeometry(1, 96, 96);
-    const material = new THREE.MeshStandardMaterial({
-      map: texture,
-      roughness: 1,
-      metalness: 0,
-    });
-    const globe = new THREE.Mesh(geometry, material);
+    // Sphere with visible fallback color
+    const globeGeom = new THREE.SphereGeometry(1, 96, 96);
+    const globeMat  = new THREE.MeshStandardMaterial({ color:0x1d4ed8, roughness:1, metalness:0 });
+    const globe = new THREE.Mesh(globeGeom, globeMat);
     scene.add(globe);
 
-    // Space background stars
-    const starsGeo = new THREE.BufferGeometry();
-    const starCount = 1500;
-    const positions = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount * 3; i += 3) {
-      const r = 60 + Math.random() * 100;
-      const theta = Math.acos(THREE.MathUtils.randFloatSpread(2));
-      const phi = THREE.MathUtils.randFloat(0, Math.PI * 2);
-      positions[i] = r * Math.sin(theta) * Math.cos(phi);
-      positions[i + 1] = r * Math.sin(theta) * Math.sin(phi);
-      positions[i + 2] = r * Math.cos(theta);
-    }
-    starsGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const stars = new THREE.Points(starsGeo, new THREE.PointsMaterial({ size: 0.2, transparent: true, opacity: 0.85 }));
-    scene.add(stars);
-
     // Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.enablePan = false;
     controls.minDistance = 1.4;
     controls.maxDistance = 6;
-    controls.autoRotate = true;        // gentle auto-rotate
-    controls.autoRotateSpeed = 0.6;    // tweak as you like
-    controls.zoomSpeed = 0.7;
-    controls.rotateSpeed = 0.9;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.6;
 
-    // Drag cursor feedback
-    const onDown = () => { document.body.classList.add("dragging"); renderer.domElement.classList.add("dragging"); controls.autoRotate = false; };
-    const onUp = () => { document.body.classList.remove("dragging"); renderer.domElement.classList.remove("dragging"); controls.autoRotate = true; };
-    renderer.domElement.addEventListener("pointerdown", onDown);
-    window.addEventListener("pointerup", onUp);
+    // Load your texture
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      "./RenderData.jpeg",
+      tex => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.minFilter = THREE.LinearFilter; // safe for 1440x720
+        tex.magFilter = THREE.LinearFilter;
+        globe.material.map = tex;
+        globe.material.color.set(0xffffff);
+        globe.material.needsUpdate = true;
+        console.log("Texture applied: RenderData.jpeg");
+      },
+      undefined,
+      err => showError("Failed to load ./RenderData.jpeg. Check the exact name, extension, and location.")
+    );
+
+    // Stars
+    const starsGeo = new THREE.BufferGeometry();
+    const starCount= 1200;
+    const positions= new Float32Array(starCount*3);
+    for(let i=0;i<starCount;i++){
+      const r=60+Math.random()*100;
+      const u=Math.random(), v=Math.random();
+      const theta=Math.acos(2*u-1), phi=2*Math.PI*v;
+      positions[i*3]=r*Math.sin(theta)*Math.cos(phi);
+      positions[i*3+1]=r*Math.sin(theta)*Math.sin(phi);
+      positions[i*3+2]=r*Math.cos(theta);
+    }
+    starsGeo.setAttribute("position", new THREE.BufferAttribute(positions,3));
+    scene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ size:0.2, transparent:true, opacity:0.85 })));
 
     // Resize
-    window.addEventListener("resize", () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    window.addEventListener("resize", ()=>{
+      camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
 
-    // Animation loop
-    const clock = new THREE.Clock();
-    function tick() {
-      const t = clock.getDelta();
+    // Animate
+    renderer.setAnimationLoop(()=>{
       controls.update();
-      // optional, slight star twinkle
-      stars.rotation.y += 0.002 * t * 60;
-      renderer.render(scene, camera);
-      requestAnimationFrame(tick);
-    }
-    tick();
+      renderer.render(scene,camera);
+    });
   </script>
 </body>
 </html>
-
