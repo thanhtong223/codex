@@ -1,1 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TerraSphere — Navigate the Planet in Real Time</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="logo">TS</span>
+        <span>TerraSphere</span>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#">Platform</a></li>
+          <li><a href="#">Solutions</a></li>
+          <li><a href="#">Pricing</a></li>
+          <li><a href="#">Resources</a></li>
+        </ul>
+      </nav>
+    </header>
 
+    <main>
+      <section class="hero-copy">
+        <h1>See the world through a living, interactive globe.</h1>
+        <p>
+          TerraSphere merges live geospatial intelligence with a tactile 3D experience.
+          Drag to explore continents, inspect real-time insights, and unlock global context for your team.
+        </p>
+        <div class="cta-group">
+          <a class="primary" href="#">Start Exploring</a>
+          <a class="secondary" href="#">Book a Demo</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <span class="value">190+</span>
+            <span class="label">Countries mapped in high fidelity</span>
+          </div>
+          <div class="stat-card">
+            <span class="value">24/7</span>
+            <span class="label">Continuous satellite data ingestion</span>
+          </div>
+          <div class="stat-card">
+            <span class="value">98%</span>
+            <span class="label">Customer satisfaction this quarter</span>
+          </div>
+        </div>
+      </section>
+      <section class="globe-wrapper" aria-label="Interactive globe visualization">
+        <div class="globe-frame">
+          <div class="orbit-decoration" aria-hidden="true"></div>
+          <div id="globe-canvas"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Crafted for explorers &middot; <span>TerraSphere Labs &copy; 2024</span>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r155/three.min.js" integrity="sha512-r3hFZ5pYZVvku0+0O48MsPtD4gDvV1gW9kf41pZ14a6J7R/IZnDBIoK1gc6pJAn0KZiOLnPt8pl5OBZiv6iV0g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r155/examples/js/controls/OrbitControls.min.js" integrity="sha512-fgVVq9V+R6KwPdihjKa/pm6NPpbwLU+yTkE0a1zclxTLuDWhS6PlYYnvl3xV9nIlaP44gDokriB3Iki2PyVFDQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="assets/js/globe.js"></script>
+  </body>
+</html>
