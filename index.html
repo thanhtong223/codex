@@ -1,1 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Globe Landing Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-gradient: radial-gradient(circle at top left, #1a3d70, #05060a 65%);
+      --accent: #43d1ff;
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.75);
+      --card-bg: rgba(8, 10, 26, 0.6);
+      --border: rgba(255, 255, 255, 0.1);
+    }
 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.5rem;
+      overflow: hidden;
+    }
+
+    .container {
+      width: min(1100px, 100%);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 3rem;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: clamp(2rem, 3vw + 1rem, 4rem);
+      box-shadow: 0 40px 120px rgba(10, 14, 34, 0.35);
+      backdrop-filter: blur(20px);
+    }
+
+    .hero-text h1 {
+      font-size: clamp(2.75rem, 6vw, 3.75rem);
+      font-weight: 700;
+      line-height: 1.05;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-text p {
+      font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+      color: var(--text-secondary);
+      margin-bottom: 2.25rem;
+      max-width: 460px;
+    }
+
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      padding: 0.95rem 1.85rem;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #020202;
+      background: var(--accent);
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 16px 40px rgba(67, 209, 255, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 24px 48px rgba(67, 209, 255, 0.45);
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: min(500px, 100%);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+    }
+
+    #globeCanvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
+
+    .floating-card {
+      margin-top: 2.5rem;
+      background: rgba(12, 16, 34, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 1.25rem 1.5rem;
+      width: min(640px, 100%);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 24px 60px rgba(6, 10, 28, 0.45);
+    }
+
+    .floating-card strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 2rem 1.25rem 3rem;
+      }
+
+      .floating-card {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero-text">
+      <h1>Explore your world in real time.</h1>
+      <p>Spin, zoom, and discover every corner of the planet with our interactive globe technology built for immersive experiences.</p>
+      <a class="cta-button" href="#">Start Exploring</a>
+    </div>
+    <div class="canvas-wrapper">
+      <canvas id="globeCanvas" aria-label="Interactive 3D globe"></canvas>
+    </div>
+  </div>
+
+  <div class="floating-card">
+    <span>✨</span>
+    <p><strong>Drag the globe</strong> to rotate it freely, and use your trackpad or mouse wheel to zoom into the details.</p>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.159.0/build/three.module.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.159.0/examples/jsm/controls/OrbitControls.js';
+
+    const canvas = document.getElementById('globeCanvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+    camera.position.set(0, 0, 5);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    directionalLight.position.set(5, 3, 5);
+    scene.add(directionalLight);
+
+    const textureLoader = new THREE.TextureLoader();
+    const earthTexture = textureLoader.load('https://threejs.org/examples/textures/land_ocean_ice_cloud_2048.jpg');
+
+    const geometry = new THREE.SphereGeometry(2, 64, 64);
+    const material = new THREE.MeshStandardMaterial({ map: earthTexture });
+    const globe = new THREE.Mesh(geometry, material);
+    scene.add(globe);
+
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 600;
+    const starPositions = new Float32Array(starCount * 3);
+
+    for (let i = 0; i < starCount; i++) {
+      const radius = 18 + Math.random() * 6;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+
+      starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      starPositions[i * 3 + 2] = radius * Math.cos(phi);
+    }
+
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05, transparent: true, opacity: 0.7 });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+    controls.minDistance = 2.6;
+    controls.maxDistance = 7;
+    controls.enablePan = false;
+
+    const resizeRenderer = () => {
+      const { clientWidth, clientHeight } = canvas.parentElement;
+      renderer.setSize(clientWidth, clientHeight, false);
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
+    };
+
+    window.addEventListener('resize', resizeRenderer);
+    resizeRenderer();
+
+    const animate = () => {
+      requestAnimationFrame(animate);
+      globe.rotation.y += 0.0018;
+      controls.update();
+      renderer.render(scene, camera);
+    };
+
+    animate();
+  </script>
+</body>
+</html>
