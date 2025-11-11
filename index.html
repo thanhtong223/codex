@@ -1,1 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rotating Globe • Landing</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background:#0b1020; overflow: hidden; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    canvas { display:block; }
+    .overlay {
+      position: fixed; inset: 0; pointer-events: none;
+      display: grid; place-items: end center; padding: 24px;
+      background: radial-gradient(1200px 600px at 50% 120%, rgba(255,255,255,0.04), transparent);
+    }
+    .hint {
+      color:#e6eefc; opacity:.85; font-size:14px; letter-spacing:.2px;
+      background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+      padding:10px 14px; border-radius:10px; backdrop-filter: blur(4px);
+    }
+    /* nicer pointer while dragging */
+    body, canvas { cursor: grab; }
+    body.dragging, canvas.dragging { cursor: grabbing; }
+  </style>
+</head>
+<body>
+  <div class="overlay"><div class="hint">Drag to rotate • Pinch or scroll to zoom</div></div>
+
+  <!-- Three.js via ESM CDN -->
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+
+    // Scene
+    const scene = new THREE.Scene();
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 0, 3);
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    // Lights, subtle rim
+    const light = new THREE.DirectionalLight(0xffffff, 1.1);
+    light.position.set(5, 3, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+
+    // Load Earth texture, your file should be in the same folder: /earth.jpg (1440x720)
+    const loader = new THREE.TextureLoader();
+    const texture = await loader.loadAsync("./earth.jpg");
+    texture.colorSpace = THREE.SRGBColorSpace;
+    // Non power-of-two textures are fine, mipmaps off by default
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy?.() || 1;
+
+    // Globe
+    const geometry = new THREE.SphereGeometry(1, 96, 96);
+    const material = new THREE.MeshStandardMaterial({
+      map: texture,
+      roughness: 1,
+      metalness: 0,
+    });
+    const globe = new THREE.Mesh(geometry, material);
+    scene.add(globe);
+
+    // Space background stars
+    const starsGeo = new THREE.BufferGeometry();
+    const starCount = 1500;
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      const r = 60 + Math.random() * 100;
+      const theta = Math.acos(THREE.MathUtils.randFloatSpread(2));
+      const phi = THREE.MathUtils.randFloat(0, Math.PI * 2);
+      positions[i] = r * Math.sin(theta) * Math.cos(phi);
+      positions[i + 1] = r * Math.sin(theta) * Math.sin(phi);
+      positions[i + 2] = r * Math.cos(theta);
+    }
+    starsGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    const stars = new THREE.Points(starsGeo, new THREE.PointsMaterial({ size: 0.2, transparent: true, opacity: 0.85 }));
+    scene.add(stars);
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enablePan = false;
+    controls.minDistance = 1.4;
+    controls.maxDistance = 6;
+    controls.autoRotate = true;        // gentle auto-rotate
+    controls.autoRotateSpeed = 0.6;    // tweak as you like
+    controls.zoomSpeed = 0.7;
+    controls.rotateSpeed = 0.9;
+
+    // Drag cursor feedback
+    const onDown = () => { document.body.classList.add("dragging"); renderer.domElement.classList.add("dragging"); controls.autoRotate = false; };
+    const onUp = () => { document.body.classList.remove("dragging"); renderer.domElement.classList.remove("dragging"); controls.autoRotate = true; };
+    renderer.domElement.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointerup", onUp);
+
+    // Resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    });
+
+    // Animation loop
+    const clock = new THREE.Clock();
+    function tick() {
+      const t = clock.getDelta();
+      controls.update();
+      // optional, slight star twinkle
+      stars.rotation.y += 0.002 * t * 60;
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    tick();
+  </script>
+</body>
+</html>
 
